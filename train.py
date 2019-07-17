@@ -244,7 +244,7 @@ for epoch in range(opt.epochs):
         scores = []
         num_annotations = 0
 
-        for i in tqdm.tqdm(range(len(all_annotations)), desc=f"Computing AP for class '{label}'"):
+        for i in tqdm.tqdm(range(len(all_annotations)), desc="Computing AP for class:{}".format(label)):
             detections = all_detections[i][label]
             annotations = all_annotations[i][label]
 
@@ -294,10 +294,10 @@ for epoch in range(opt.epochs):
 
     print("Average Precisions:")
     for c, ap in average_precisions.items():
-        print(f"+ Class '{c}' - AP: {ap}")
+        print("+ Class '{c}' - AP: {ap}")
         test_data_file.write("%.5f "%ap)
     mAP = np.mean(list(average_precisions.values()))
-    print(f"mAP: {mAP}")
+    print("mAP: {mAP}")
     test_data_file.write("%.5f\n"% mAP)
     
     if(mAP > best_mAP):

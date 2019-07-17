@@ -6,8 +6,8 @@ import sys
 #set your data_set absolute path
 #as for me, for example 
 # test example
-kitti_img_path ='/home/pakcy/Desktop/PyTorch-YOLOv3-kitti/label_transform/kitti/images/'
-kitti_label_path = '/home/pakcy/Desktop/PyTorch-YOLOv3-kitti/label_transform/kitti/lables/'
+kitti_img_path ='/data/wuliang/KITTI/object/training/image_2/'
+kitti_label_path = '/data/wuliang/KITTI/object/training/label_2/'
 
 
 
@@ -36,13 +36,13 @@ kitti_names_num = dict(zip(kitti_names_dic_key,values))
 
 #print(kitti_names_num)
 
-#创建训练集图片的List
+# Create train_list
 f = open('train.txt','w')
 for img in kitti_images:
     f.write(kitti_img_path+img+'\n')
 f.close()
 
-#kitti数据集 相对坐标 转换为绝对坐标
+# Convert related_coords to absolute_coords
 for indexi in range(len(kitti_images)):
     kitti_img_totest_path = kitti_img_path + kitti_images[indexi]
     kitti_label_totest_path = kitti_label_path + kitti_labels[indexi]
@@ -84,10 +84,10 @@ for indexi in range(len(kitti_images)):
 
                 #print(kitti_names_contents[class_num])
                 # cv2.putText()
-                # 输入参数为图像、文本、位置、字体、大小、颜色数组、粗细
+                # Input params: image, text, pos, font, size, color_list, line_width
                 #cv2.putText(kitti_img_totest, class_str, (intx1, inty1+3), cvfont, 2, (0,0,255), 1)
                 # cv2.rectangle()
-                # 输入参数分别为图像、左上角坐标、右下角坐标、颜色数组、粗细
+                # Input params: image, topleft_coord, rightdown_coord, color_list, line_width
                 #cv2.rectangle(kitti_img_totest, (intx1,inty1), (intx2,inty2), (0,255,0), 2)
                 line_to_write = str(kitti_names_num[class_str]) + ' ' + str(bbox_center_x)+ ' ' + str(bbox_center_y)+ ' ' + str(bbox_width)+ ' ' + str(bbox_height) +'\n'
                 real_label.write(line_to_write)
