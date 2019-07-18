@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.ticker import NullLocator
 
-kitti_weights = 'weights/kitti.weights'
+kitti_weights = 'checkpoints/kitti_best.weights'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image_folder', type=str, default='data/samples/', help='path to dataset')
@@ -50,6 +50,7 @@ if cuda:
 
 model.eval() # Set in evaluation mode
 
+print(opt.image_folder)
 dataloader = DataLoader(ImageFolder(opt.image_folder, img_size=opt.img_size),
                         batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
@@ -87,7 +88,7 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
 
 # Bounding-box colors
 #cmap = plt.get_cmap('tab20b')
-cmap = plt.get_cmap('Vega20b')
+cmap = plt.get_cmap('Accent')
 colors = [cmap(i) for i in np.linspace(0, 1, 20)]
 
 print ('\nSaving images:')

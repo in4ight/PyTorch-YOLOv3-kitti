@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--batch_size", type=int, default=16, help="size of each image batch")
 parser.add_argument("--model_config_path", type=str, default="config/yolov3-kitti.cfg", help="path to model config file")
 parser.add_argument("--data_config_path", type=str, default="config/kitti.data", help="path to data config file")
-parser.add_argument("--weights_path", type=str, default="weights/kitti.weights", help="path to weights file")
+parser.add_argument("--weights_path", type=str, default="checkpoints/kitti_best.weights", help="path to weights file")
 parser.add_argument("--class_path", type=str, default="data/kitti.names", help="path to class label file")
 parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
 parser.add_argument("--conf_thres", type=float, default=0.5, help="object confidence threshold")
@@ -109,7 +109,7 @@ for label in range(num_classes):
     scores = []
     num_annotations = 0
 
-    for i in tqdm.tqdm(range(len(all_annotations)), desc=f"Computing AP for class '{label}'"):
+    for i in tqdm.tqdm(range(len(all_annotations)), desc="Computing AP for class {}".format(label)):
         detections = all_detections[i][label]
         annotations = all_annotations[i][label]
 
@@ -159,8 +159,8 @@ for label in range(num_classes):
 
 print("Average Precisions:")
 for c, ap in average_precisions.items():
-    print(f"+ Class '{c}' - AP: {ap}")
-    loss_data_file.write("%.5f "%ap)
+    print("+ Class '{}' - AP: {}".format(c, ap))
+    loss_data_file.write("%.5f " % ap)
 mAP = np.mean(list(average_precisions.values()))
-print(f"mAP: {mAP}")
+print("mAP: {}".format(mAP))
 loss_data_file.write("%.5f\n"% mAP)

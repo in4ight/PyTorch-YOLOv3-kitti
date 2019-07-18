@@ -2,3 +2,4 @@ label_transform/kitti/labels2coco
 .idea/
 __pycache__/
 checkpoints/
+output/
