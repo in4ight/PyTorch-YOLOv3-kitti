@@ -93,7 +93,7 @@ accumulated_batches = 4
 best_mAP = 0.0
 
 
-print("start traing")
+print("start training")
 loss_data_file = open('loss data.txt','w+')
 test_data_file = open('test_data.txt','w+')
 
@@ -294,10 +294,10 @@ for epoch in range(opt.epochs):
 
     print("Average Precisions:")
     for c, ap in average_precisions.items():
-        print("+ Class '{c}' - AP: {ap}")
+        print("+ Class '{}' - AP: {}".format(c, ap))
         test_data_file.write("%.5f "%ap)
     mAP = np.mean(list(average_precisions.values()))
-    print("mAP: {mAP}")
+    print("mAP: {}".format(mAP))
     test_data_file.write("%.5f\n"% mAP)
     
     if(mAP > best_mAP):
