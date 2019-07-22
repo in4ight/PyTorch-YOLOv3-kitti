@@ -18,13 +18,15 @@ from torchvision import transforms
 from torch.autograd import Variable
 import torch.optim as optim
 
+ckpt_weights = 'checkpoints/darknet53.conv.74'
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
 parser.add_argument("--image_folder", type=str, default="data/samples", help="path to dataset")
-parser.add_argument("--batch_size", type=int, default=10, help="size of each image batch")
+parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
 parser.add_argument("--model_config_path", type=str, default="config/yolov3-kitti.cfg", help="path to model config file")
 parser.add_argument("--data_config_path", type=str, default="config/kitti.data", help="path to data config file")
-parser.add_argument("--weights_path", type=str, default="checkpoints/darknet53.conv.74", help="path to weights file/ can use darknet53.conv.74")
+parser.add_argument("--weights_path", type=str, default=ckpt_weights, help="path to weights file/ can use darknet53.conv.74")
 parser.add_argument("--class_path", type=str, default="data/kitti.names", help="path to class label file")
 parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
 parser.add_argument("--conf_thres", type=float, default=0.8, help="object confidence threshold")
@@ -191,10 +193,11 @@ for epoch in range(opt.epochs):
         model.save_weights("%s/%d.weights" % (opt.checkpoint_dir, epoch))
         
     #mean_AP = test_model(test_dataloader, test_data_file, model)
-    print("Compute %d Epoch mAP..." % epoch)
+    # print("Compute %d Epoch mAP..." % epoch)
 
     all_detections = []
     all_annotations = []
+
 
     for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(test_dataloader, desc="Detecting objects")):
 
@@ -299,7 +302,7 @@ for epoch in range(opt.epochs):
     mAP = np.mean(list(average_precisions.values()))
     print("mAP: {}".format(mAP))
     test_data_file.write("%.5f\n"% mAP)
-    
+
     if(mAP > best_mAP):
         best_mAP = mAP
         model.save_weights("%s/kitti_best.weights" % (opt.checkpoint_dir))

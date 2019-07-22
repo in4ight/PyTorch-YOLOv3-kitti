@@ -19,16 +19,20 @@ from torchvision import transforms
 from torch.autograd import Variable
 import torch.optim as optim
 
+import time
+
+kitti_weights = 'checkpoints/98.weights'
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--batch_size", type=int, default=16, help="size of each image batch")
 parser.add_argument("--model_config_path", type=str, default="config/yolov3-kitti.cfg", help="path to model config file")
 parser.add_argument("--data_config_path", type=str, default="config/kitti.data", help="path to data config file")
-parser.add_argument("--weights_path", type=str, default="checkpoints/kitti_best.weights", help="path to weights file")
+parser.add_argument("--weights_path", type=str, default=kitti_weights, help="path to weights file")
 parser.add_argument("--class_path", type=str, default="data/kitti.names", help="path to class label file")
 parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
 parser.add_argument("--conf_thres", type=float, default=0.5, help="object confidence threshold")
 parser.add_argument("--nms_thres", type=float, default=0.45, help="iou thresshold for non-maximum suppression")
-parser.add_argument("--n_cpu", type=int, default=0, help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_cpu", type=int, default=16, help="number of cpu threads to use during batch generation")
 parser.add_argument("--img_size", type=int, default=416, help="size of each image dimension")
 parser.add_argument("--use_cuda", type=bool, default=True, help="whether to use cuda if available")
 
@@ -49,6 +53,8 @@ model.load_weights(opt.weights_path)
 if cuda:
     model = model.cuda()
     model.eval()
+    print("CUDA is ready")
+
 # Get dataloader
 test_path = data_config["valid"]
 dataset = ListDataset(test_path)
@@ -62,15 +68,16 @@ all_detections = []
 all_annotations = []
 
 for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
-
+# for batch_i, (_, imgs, targets) in enumerate(dataloader):
+#     t_start = time.time()
     imgs = Variable(imgs.type(Tensor))
 
     with torch.no_grad():
         outputs = model(imgs)
         outputs = non_max_suppression(outputs, 80, conf_thres=opt.conf_thres, nms_thres=opt.nms_thres)
+    torch.cuda.synchronize()
 
     for output, annotations in zip(outputs, targets):
-
         all_detections.append([np.array([]) for _ in range(num_classes)])
         if output is not None:
             # Get predicted boxes, confidence scores and labels
@@ -102,6 +109,8 @@ for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecti
 
             for label in range(num_classes):
                 all_annotations[-1][label] = annotation_boxes[annotation_labels == label, :]
+    # t_end = time.time()
+    # print('forward pass time', t_end - t_start)
 
 average_precisions = {}
 for label in range(num_classes):
