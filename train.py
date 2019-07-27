@@ -18,12 +18,13 @@ from torchvision import transforms
 from torch.autograd import Variable
 import torch.optim as optim
 
-ckpt_weights = 'checkpoints/darknet53.conv.74'
+# ckpt_weights = 'checkpoints/darknet53.conv.74'
+ckpt_weights = 'checkpoints/24.weights'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
 parser.add_argument("--image_folder", type=str, default="data/samples", help="path to dataset")
-parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
+parser.add_argument("--batch_size", type=int, default=16, help="size of each image batch")
 parser.add_argument("--model_config_path", type=str, default="config/yolov3-kitti.cfg", help="path to model config file")
 parser.add_argument("--data_config_path", type=str, default="config/kitti.data", help="path to data config file")
 parser.add_argument("--weights_path", type=str, default=ckpt_weights, help="path to weights file/ can use darknet53.conv.74")
@@ -32,7 +33,7 @@ parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold 
 parser.add_argument("--conf_thres", type=float, default=0.8, help="object confidence threshold")
 parser.add_argument("--nms_thres", type=float, default=0.4, help="iou thresshold for non-maximum suppression")
 parser.add_argument("--n_cpu", type=int, default=16, help="number of cpu threads to use during batch generation")
-parser.add_argument("--img_size", type=int, default=416, help="size of each image dimension")
+parser.add_argument("--img_size", type=int, default=600, help="size of each image dimension")
 parser.add_argument("--checkpoint_interval", type=int, default=2, help="interval between saving model weights")
 parser.add_argument("--checkpoint_dir", type=str, default="checkpoints", help="directory where model checkpoints are saved")
 parser.add_argument("--use_cuda", type=bool, default=True, help="whether to use cuda if available")

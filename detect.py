@@ -19,7 +19,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.ticker import NullLocator
 
-kitti_weights = 'checkpoints/416size.weights'
+from multiprocessing import Pool
+
+kitti_weights = 'checkpoints/kitti_best.weights'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image_folder', type=str, default='data/samples/', help='path to dataset')
@@ -29,8 +31,8 @@ parser.add_argument('--class_path', type=str, default='data/kitti.names', help='
 parser.add_argument('--conf_thres', type=float, default=0.8, help='object confidence threshold')
 parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold for non-maximum suppression')
 parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
-parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
-parser.add_argument('--img_size', type=int, default=416, help='size of each image dimension')
+parser.add_argument('--n_cpu', type=int, default=12, help='number of cpu threads to use during batch generation')
+parser.add_argument('--img_size', type=int, default=602, help='size of each image dimension')
 parser.add_argument('--use_cuda', type=bool, default=True, help='whether to use cuda if available')
 opt = parser.parse_args()
 print('Config:')
@@ -73,7 +75,7 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
         detections = model(input_imgs)
         #print(detections)
         detections = non_max_suppression(detections, 80, opt.conf_thres, opt.nms_thres)
-        #print(detections)
+        # print(detections)
 
 
     # Log progress
@@ -84,7 +86,12 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
 
     # Save image and detections
     imgs.extend(img_paths)
-    img_detections.extend(detections)
+    cpu_detections = []
+    for d in detections:
+        if d is not None:
+            cpu_detections.append(d.cpu())
+    # print(cpu_detections)
+    img_detections.extend(cpu_detections)
 
 # Bounding-box colors
 #cmap = plt.get_cmap('tab20b')
@@ -92,58 +99,92 @@ cmap = plt.get_cmap('Accent')
 colors = [cmap(i) for i in np.linspace(0, 1, 20)]
 
 print ('\nSaving images:')
-# Iterate through images and save plot of detections
-for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
 
-    print ("(%d) Image: '%s'" % (img_i, path))
+# for img in imgs:
+#     img = img.cpu()
 
-    # Create plot
-    img = np.array(Image.open(path))
-    plt.figure()
-    fig, ax = plt.subplots(1)
-    ax.imshow(img)
-    
-    #kitti_img_size = 11*32
-    kitti_img_size = 416
-    # The amount of padding that was added
-    #pad_x = max(img.shape[0] - img.shape[1], 0) * (opt.img_size / max(img.shape))
-    #pad_y = max(img.shape[1] - img.shape[0], 0) * (opt.img_size / max(img.shape))
-    pad_x = max(img.shape[0] - img.shape[1], 0) * (kitti_img_size / max(img.shape))
-    pad_y = max(img.shape[1] - img.shape[0], 0) * (kitti_img_size / max(img.shape))
-    # Image height and width after padding is removed
-    unpad_h = kitti_img_size - pad_y
-    unpad_w = kitti_img_size - pad_x
+# for d in img_detections:
+#     d = d.cpu()
 
-    # Draw bounding boxes and labels of detections
-    if detections is not None:
-        print(type(detections))
-        print(detections.size())
-        unique_labels = detections[:, -1].cpu().unique()
-        n_cls_preds = len(unique_labels)
-        bbox_colors = random.sample(colors, n_cls_preds)
-        for x1, y1, x2, y2, conf, cls_conf, cls_pred in detections:
+# Split list to m slices, as average as possible
+def chunks(arr, m):
+    n = int(math.ceil(len(arr) / float(m)))
+    return [arr[i:i + n] for i in range(0, len(arr), n)]
 
-            print ('\t+ Label: %s, Conf: %.5f' % (classes[int(cls_pred)], cls_conf.item()))
-            # Rescale coordinates to original dimensions
-            box_h = int(((y2 - y1) / unpad_h) * (img.shape[0]))
-            box_w = int(((x2 - x1) / unpad_w) * (img.shape[1]) )
-            y1 = int(((y1 - pad_y // 2) / unpad_h) * (img.shape[0]))
-            x1 = int(((x1 - pad_x // 2) / unpad_w) * (img.shape[1]))
 
-            color = bbox_colors[int(np.where(unique_labels == int(cls_pred))[0])]
-            # Create a Rectangle patch
-            bbox = patches.Rectangle((x1, y1), box_w, box_h, linewidth=2,
-                                    edgecolor=color,
-                                    facecolor='none')
-            # Add the bbox to the plot
-            ax.add_patch(bbox)
-            # Add label
-            plt.text(x1, y1-30, s=classes[int(cls_pred)]+' '+ str('%.4f'%cls_conf.item()), color='white', verticalalignment='top',
-                    bbox={'color': color, 'pad': 0})
+def part_img_generate(params):
+    imgs = params['imgs']
+    img_detections = params['img_detections']
+    # Iterate through images and save plot of detections
+    for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
 
-    # Save generated image with detections
-    plt.axis('off')
-    plt.gca().xaxis.set_major_locator(NullLocator())
-    plt.gca().yaxis.set_major_locator(NullLocator())
-    plt.savefig('output/%d.png' % (img_i), bbox_inches='tight', pad_inches=0.0)
-    plt.close()
+        # print("(%d) Image: '%s'" % (img_i, path))
+
+        # Create plot
+        img = np.array(Image.open(path))
+        plt.figure()
+        fig, ax = plt.subplots(1)
+        ax.imshow(img)
+
+        # kitti_img_size = 11*32
+        kitti_img_size = opt.img_size
+        # The amount of padding that was added
+        # pad_x = max(img.shape[0] - img.shape[1], 0) * (opt.img_size / max(img.shape))
+        # pad_y = max(img.shape[1] - img.shape[0], 0) * (opt.img_size / max(img.shape))
+        pad_x = max(img.shape[0] - img.shape[1], 0) * (kitti_img_size / max(img.shape))
+        pad_y = max(img.shape[1] - img.shape[0], 0) * (kitti_img_size / max(img.shape))
+        # Image height and width after padding is removed
+        unpad_h = kitti_img_size - pad_y
+        unpad_w = kitti_img_size - pad_x
+
+        # Draw bounding boxes and labels of detections
+        if detections is not None:
+            print(type(detections))
+            print(detections.size())
+            unique_labels = detections[:, -1].cpu().unique()
+            n_cls_preds = len(unique_labels)
+            bbox_colors = random.sample(colors, n_cls_preds)
+            for x1, y1, x2, y2, conf, cls_conf, cls_pred in detections:
+                # print('\t+ Label: %s, Conf: %.5f' % (classes[int(cls_pred)], cls_conf.item()))
+                # Rescale coordinates to original dimensions
+                box_h = int(((y2 - y1) / unpad_h) * (img.shape[0]))
+                box_w = int(((x2 - x1) / unpad_w) * (img.shape[1]))
+                y1 = int(((y1 - pad_y // 2) / unpad_h) * (img.shape[0]))
+                x1 = int(((x1 - pad_x // 2) / unpad_w) * (img.shape[1]))
+
+                color = bbox_colors[int(np.where(unique_labels == int(cls_pred))[0])]
+                # Create a Rectangle patch
+                bbox = patches.Rectangle((x1, y1), box_w, box_h, linewidth=2,
+                                         edgecolor=color,
+                                         facecolor='none')
+                # Add the bbox to the plot
+                ax.add_patch(bbox)
+                # Add label
+                plt.text(x1, y1 - 30, s=classes[int(cls_pred)] + ' ' + str('%.4f' % cls_conf.item()), color='white',
+                         verticalalignment='top',
+                         bbox={'color': color, 'pad': 0})
+
+        # Save generated image with detections
+        plt.axis('off')
+        plt.gca().xaxis.set_major_locator(NullLocator())
+        plt.gca().yaxis.set_major_locator(NullLocator())
+        file_name = os.path.split(path)[1]
+        plt.savefig('output/%s.png' % (path), bbox_inches='tight', pad_inches=0.0)
+        plt.close()
+
+
+nthreads = opt.n_cpu
+sliced_imgs = chunks(imgs, nthreads)
+sliced_img_detections = chunks(img_detections, nthreads)
+print(len(sliced_img_detections[0]))
+
+params = []
+for i in range(nthreads):
+    params.append(dict(imgs=sliced_imgs[i],
+                       img_detections=sliced_img_detections[i]))
+
+pool = Pool(nthreads)
+pool.map(part_img_generate, params)
+
+
+
